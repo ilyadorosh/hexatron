@@ -1,3 +1,33 @@
+// neighbour
+// graph search
+// usa map load
+// generate random hexagon array, save
+
+class OffsetClass {
+    constructor(row, col) {
+        this.row = rows;
+        this.col = col;
+    }
+    equals (obj) { 
+        return (obj instanceof OffsetClass) &&
+            (obj.row === this.row) && (obj.col === this.col); 
+    };
+
+}
+
+class Orientation {
+    constructor(f0, f1, f2, f3, b0, b1, b2, b3) {
+        this.f0 = f0;
+        this.f1 = f1;
+        this.f2 = f2;
+        this.f3 = f3;
+        this.b0 = b0;
+        this.b1 = b1;
+        this.b2 = b2;
+        this.b3 = b3;
+    }
+}
+
 (function(){
     var canvas = document.getElementById('hexmap');
     var hexHeight,
@@ -5,22 +35,62 @@
         hexRectangleHeight,
         hexRectangleWidth,
         hexagonAngle = 0.523598776, // 30 degrees in radians
-        sideLength = 20,
-        boardWidth = 10,
-        boardHeight = 40;
+        sideLength = 60,
+        boardWidth = 9,
+        boardHeight = 9,
 
-        var patt=[];
-        patt.push({i:2, j:5});
-        patt.push({i:4, j:0});
+        size, origin, M,
+        rect,
 
-        var begin = OffsetCoord(7,5),
-            lin=[];
+        action = "begin", 
+        patt=new Array(boardHeight),
+        begin = OffsetCoord(7,5),
+        beginc = roffset_to_cube(-1,begin),
+        end, endc,
+        path=[],
+        board=[],
+        mySet = new Set();
 
+    //MMMMMMMMMMMMMMMMMM MAP GENERATION
+    function createObstacles() {
+        var n = 10,
+            obstacles=[];
+        
+        for(i = 0; i < boardWidth; ++i) {
+            let newrow=new Array(boardHeight)
+            for(j = 0; j < boardHeight; ++j) {
+                if(  Math.floor(3*boardWidth/2)<=(i+j) || 
+                       (i+j) <Math.floor(boardWidth/2) ){
+                    newrow[j]=0//Math.floor(Math.random()*1.999)
+                } else {
+                    newrow[j]=1
+                }
+            }
+            patt[i]=newrow;
+        }
+        console.log(patt, "patt")
+        console.log(obstacles)
+        for (; n > 0; n -= 1) {
+            obstacles.push([Math.floor(Math.random() * boardWidth),
+                                        Math.floor(Math.random() * boardHeight)]);
+            //mySet.add(new OffsetClass(Math.floor(Math.random() * boardWidth),
+            //                          Math.floor(Math.random() * boardHeight)) );
+        }
+        return obstacles;
+    }    
+    var obstacles = createObstacles();
+
+    //HHHHH HEX SIZES
     hexHeight = Math.sin(hexagonAngle) * sideLength;
     hexRadius = Math.cos(hexagonAngle) * sideLength;
     hexRectangleHeight = sideLength + 2 * hexHeight;
     hexRectangleWidth = 2 * hexRadius;
 
+    rect = canvas.getBoundingClientRect();
+    size = new Point(hexRadius, hexHeight + sideLength);
+    origin = new Point(0,0)//rect.left, rect.top);
+    M = new Orientation( Math.sqrt(3.0), Math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, Math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0);
+    //console.log(M)
     if (canvas.getContext){
         var ctx = canvas.getContext('2d');
         ctx.fillStyle = "#ffa0ff";
@@ -34,21 +104,30 @@
                 hexX,
                 hexY,
                 screenX,
-                screenY,
-                rect;
-            rect = canvas.getBoundingClientRect();
+                screenY;
+
             x = eventInfo.clientX - rect.left;
             y = eventInfo.clientY - rect.top;
+            // PIXEL TO HEX 
             hexY = Math.floor(y / (hexHeight + sideLength));
             hexX = Math.floor((x - (hexY % 2) * hexRadius) / hexRectangleWidth);
-            var end= OffsetCoord(hexX, hexY),
-                beginc = roffset_to_cube(-1,begin);
-                endc = roffset_to_cube(-1,end),
-                lin = hex_linedraw(beginc, endc);
             screenX = hexX * hexRectangleWidth + ((hexY % 2) * hexRadius);
             screenY = hexY * (hexHeight + sideLength);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawBoard(ctx, boardWidth, boardHeight);
+            if(action === "begin"){
+                begin = OffsetCoord(hexX, hexY);
+                beginc = roffset_to_cube(-1,begin)
+                drawHexagon(ctx, screenX, screenY, true);
+                action = "end"
+            } else{
+                end= OffsetCoord(hexX, hexY),
+                endc = roffset_to_cube(-1,end),
+                path = hex_linedraw(beginc, endc);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBoard(ctx, boardWidth, boardHeight);
+                drawPath(ctx, path);
+            }
+            console.log(path)
+
             // Check if the mouse's coords are on the board
             if(hexX >= 0 && hexX < boardWidth) {
                 if(hexY >= 0 && hexY < boardHeight) {
@@ -132,10 +211,42 @@
         return results;
     }
 
+    var hex_directions = [Hex(1, 0, -1), Hex(1, -1, 0), Hex(0, -1, 1), Hex(-1, 0, 1), Hex(-1, 1, 0), Hex(0, 1, -1)];
+    function hex_direction(direction)
+    {
+        return hex_directions[direction];
+    }
+
+    function hex_neighbor(hex, direction)
+    {
+        return hex_add(hex, hex_direction(direction));
+    }
+
 
 
     function OffsetCoord(col, row) {
         return {col: col, row: row};
+    }
+
+
+    function hexToPixel(h) {
+        var x = (M.f0 * h.q + M.f1 * h.r) * size.x;
+        var y = h.r * size.y;
+        return new Point(x + origin.x, y + origin.y);
+    }
+    function pixelToHex(p) {
+        var pt = new Point((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
+        var q = M.b0 * pt.x + M.b1 * pt.y;
+        var r = M.b2 * pt.x + M.b3 * pt.y;
+        return new Hex(q, r, -q - r);
+    }
+
+    function offsetToPixel(oc) {
+        let i=oc.col;
+        let j=oc.row;
+        let x = i * hexRectangleWidth + ((j % 2) * hexRadius);
+        let y = j * (sideLength + hexHeight);
+        return Point(x, y);
     }
 
     var EVEN = 1;
@@ -160,23 +271,20 @@
             j;
         for(i = 0; i < width; ++i) {
             for(j = 0; j < height; ++j) {
-                drawHexagon(
-                    ctx, 
-                    i * hexRectangleWidth + ((j % 2) * hexRadius),
-                    j * (sideLength + hexHeight), 
-                    false
-                );
-                var cubeobj = roffset_to_cube(-1,OffsetCoord(i,j));
-                canvasContext.fillText('i='+i+' j='+j+
-                        'q='+cubeobj.q+
-                        's='+cubeobj.s, 
-                    i * hexRectangleWidth + ((j % 2) * hexRadius), 
-                    j * (sideLength + hexHeight)+20
-                );
+                //let p = hexToPixel(Hex(j,i,-j-i));
+                let p = offsetToPixel(roffset_from_cube(-1, Hex(j,i,-j-i) ));
+                //if(mySet.has(OffsetClass(i,j)) ){
+                if(patt[i][j]!=0 ){
+                    drawHexagon(ctx, p.x, p.y,false);
+                }
+                canvasContext.fillText('q='+j+ ' r='+i, p.x+20, p.y+40);
             }
         }
-       lin.forEach(function(pointc) {
-                point = roffset_from_cube(-1, pointc);
+    }
+
+    function drawPath(canvasContext, path) {
+        path.forEach(function(pointc) {
+            point = roffset_from_cube(-1, pointc);
                 drawHexagon(
                     ctx, 
                     point.col * hexRectangleWidth + ((point.row % 2) * hexRadius), 
@@ -184,9 +292,7 @@
                     true
                 );
         });
-
-        ctx.fillText('lin'+lin.length, 10, 40);
-    }
+    }
 
     function drawHexagon(canvasContext, x, y, fill) { 
         var fill = fill || false;
@@ -199,14 +305,39 @@
         canvasContext.lineTo(x, y + hexHeight);
         canvasContext.closePath();
         if(fill) {
-        ctx.fillStyle = "#ffa0ff";
+        ctx.fillStyle = "#eeeeaa";
         } else {
-        ctx.fillStyle = "#9090d0";
+        ctx.fillStyle = "#aaccaa";
            // canvasContext.stroke();
         }
         canvasContext.fill();
 
-        ctx.fillStyle = "#ffa000";
+        ctx.fillStyle = "#cceecc";
         ctx.fillText('x='+x.toFixed(2)+' y='+y.toFixed(2), x, 30+y);
     }
+
+
+    document.getElementById('reset').onclick = function() {
+        action='begin';
+    }
+
+    document.getElementById('import').onclick = function() {
+      var files = document.getElementById('selectFiles').files;
+      console.log(files);
+      if (files.length <= 0) {
+          return false;
+      }
+
+      var fr = new FileReader();
+
+      fr.onload = function(e) { 
+          console.log(e);
+          var result = JSON.parse(e.target.result);
+          var formatted = JSON.stringify(result, null, 2);
+          document.getElementById('result').value = formatted;
+      }
+
+      fr.readAsText(files.item(0));
+    };
+
 })();

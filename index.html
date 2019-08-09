@@ -10,9 +10,20 @@ display:block;
 margin:0 auto;
 }
 </style>
+<script src="eruda.min.js"></script>
+    <script>
+        eruda.init(), eruda.get("console").config.set("displayGetterVal", !0)
+    </script>
     </head>
     <body>
-        <canvas id="hexmap" width="860" height="624"></canvas>
+        <canvas id="hexmap" width="1200" height="900"></canvas>
+        <input type="file" id="selectFiles" value="Import" /><br />
+        <button id="import">Import</button>
+        <textarea id="result"></textarea>
+
+
+        <button id="reset">Reset start</button>
+
         <script src="hexagons.js"></script>
     </body>
 </html>
