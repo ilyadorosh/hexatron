@@ -4,8 +4,11 @@
         <meta charset="utf-8" />
         <title>Canvas Hexagonal Map</title>
         <style type="text/css">
+body { 
+border:4px black;
+}
 canvas { 
-border:0;
+border:4px black;
 display:block;
 margin:0 auto;
 }
@@ -17,11 +20,12 @@ margin:0 auto;
     </head>
     <body>
         <canvas id="hexmap" width="1200" height="900"></canvas>
+
         <input type="file" id="selectFiles" value="Import" /><br />
-        <button id="import">Import</button>
-        <textarea id="result"></textarea>
-
-
+        <button id="import">Import</button></br>
+        <textarea id="result"></textarea></br>
+        <button id="generate">Generate random map</button></br>
+        <button id="download">Export</button></br>
         <button id="reset">Reset start</button>
 
         <script src="hexagons.js"></script>
