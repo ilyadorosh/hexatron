@@ -15,20 +15,6 @@ class OffsetClass {
 
 }
 
-class Orientation {
-    constructor(f0, f1, f2, f3, b0, b1, b2, b3) {
-        this.f0 = f0;
-        this.f1 = f1;
-        this.f2 = f2;
-        this.f3 = f3;
-        this.b0 = b0;
-        this.b1 = b1;
-        this.b2 = b2;
-        this.b3 = b3;
-    }
-}
-
-(function(){
     var canvas = document.getElementById('hexmap');
     var hexHeight,
         hexRadius,
@@ -61,15 +47,18 @@ class Orientation {
             for(j = 0; j < boardHeight; ++j) {
                 if(  Math.floor(3*boardWidth/2)<=(i+j) || 
                        (i+j) <Math.floor(boardWidth/2) ){
-                    newrow[j]=0//Math.floor(Math.random()*1.999)
+                    newrow[j]=0
                 } else {
-                    newrow[j]=1
+                    newrow[j]=Math.floor(0.4+Math.random()*1.599)
                 }
             }
             patt[i]=newrow;
         }
-        console.log(patt, "patt")
-        console.log(obstacles)
+        //console.log( "patt", patt)
+
+
+
+        //console.log(obstacles)
         for (; n > 0; n -= 1) {
             obstacles.push([Math.floor(Math.random() * boardWidth),
                                         Math.floor(Math.random() * boardHeight)]);
@@ -89,8 +78,7 @@ class Orientation {
     rect = canvas.getBoundingClientRect();
     size = new Point(hexRadius, hexHeight + sideLength);
     origin = new Point(0,0)//rect.left, rect.top);
-    M = new Orientation( Math.sqrt(3.0), Math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, Math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0);
-    //console.log(M)
+
     if (canvas.getContext){
         var ctx = canvas.getContext('2d');
         ctx.fillStyle = "#ffa0ff";
@@ -113,20 +101,28 @@ class Orientation {
             hexX = Math.floor((x - (hexY % 2) * hexRadius) / hexRectangleWidth);
             screenX = hexX * hexRectangleWidth + ((hexY % 2) * hexRadius);
             screenY = hexY * (hexHeight + sideLength);
-            if(action === "begin"){
-                begin = OffsetCoord(hexX, hexY);
-                beginc = roffset_to_cube(-1,begin)
-                drawHexagon(ctx, screenX, screenY, true);
-                action = "end"
-            } else{
-                end= OffsetCoord(hexX, hexY),
-                endc = roffset_to_cube(-1,end),
-                path = hex_linedraw(beginc, endc);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawBoard(ctx, boardWidth, boardHeight);
-                drawPath(ctx, path);
-            }
-            console.log(path)
+            var touched = OffsetCoord(hexX, hexY);
+            var touchedc = roffset_to_cube(-1,touched)
+            //if(patt[touchedc.r][touchedc.q]===1 ){
+                if(action === "begin"){
+                    beginc = touchedc
+                    drawHexagon(ctx, screenX, screenY, true);
+                    action = "end"
+                    console.log("succ",getSuccessors(beginc)) 
+                } else{
+                    endc = touchedc
+                    path = hex_linedraw(beginc, endc);
+                    var way = astar (beginc, endc, {id, isGoal, getSuccessors ,distance, estimate})
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawBoard(ctx, boardWidth, boardHeight);
+                    drawPath(ctx, way);
+                    console.log("path/way",way)
+                    let next = hex_neighbor(endc, 3)
+                    let nextOff = roffset_from_cube(-1, next)
+                    let xy = offsetToPixel(nextOff)
+                    //drawHexagon(ctx, xy.x, xy.y, true);
+                }
+            //}
 
             // Check if the mouse's coords are on the board
             if(hexX >= 0 && hexX < boardWidth) {
@@ -212,6 +208,7 @@ class Orientation {
     }
 
     var hex_directions = [Hex(1, 0, -1), Hex(1, -1, 0), Hex(0, -1, 1), Hex(-1, 0, 1), Hex(-1, 1, 0), Hex(0, 1, -1)];
+
     function hex_direction(direction)
     {
         return hex_directions[direction];
@@ -230,14 +227,14 @@ class Orientation {
 
 
     function hexToPixel(h) {
-        var x = (M.f0 * h.q + M.f1 * h.r) * size.x;
+        var x = 0 
         var y = h.r * size.y;
         return new Point(x + origin.x, y + origin.y);
     }
     function pixelToHex(p) {
         var pt = new Point((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
-        var q = M.b0 * pt.x + M.b1 * pt.y;
-        var r = M.b2 * pt.x + M.b3 * pt.y;
+        var q = 0
+        var r =0 
         return new Hex(q, r, -q - r);
     }
 
@@ -274,7 +271,7 @@ class Orientation {
                 //let p = hexToPixel(Hex(j,i,-j-i));
                 let p = offsetToPixel(roffset_from_cube(-1, Hex(j,i,-j-i) ));
                 //if(mySet.has(OffsetClass(i,j)) ){
-                if(patt[i][j]!=0 ){
+                if(patt[i][j]===1 ){
                     drawHexagon(ctx, p.x, p.y,false);
                 }
                 canvasContext.fillText('q='+j+ ' r='+i, p.x+20, p.y+40);
@@ -356,6 +353,83 @@ class Orientation {
         download(jsonData, 'json.txt', 'text/plain');
     }
 
+function astar (start, goal, {id, isGoal, getSuccessors, distance, estimate}) {
+  const priorityQueue = [start]  // TODO: Should we use BinaryHeap?
+  const closed = new Set()
+  const parents = new Map()
+  const gScore = new Map()
+  const fScore = new Map()
+  let node = null
+
+  gScore.set(id(start), 0)
+  fScore.set(id(start), estimate(start, goal))
+
+  while (priorityQueue[0] || priorityQueue.length) {
+    console.log("openque",priorityQueue)
+    node = priorityQueue.shift()
+
+    if (closed.has(id(node))) {
+      continue
+    }
+    if (isGoal(node)) {
+      break // backtrace from here
+    }
+    closed.add(id(node))
+
+    for (let child of getSuccessors(node)) {
+      if (closed.has(id(child))) {
+        continue
+      }
+      priorityQueue.push(child)
+
+      // The distance from start to a child
+      const tentativeGScore = gScore.get(id(node)) + distance(node, child)
+      const childGScore = gScore.has(id(child)) ? gScore.get(id(child)) : Infinity
+
+      // This is not a better path
+      if (tentativeGScore >= childGScore) {
+        continue
+      }
+      // This path is the best until now. We should save it.
+      parents.set(id(child), node)
+      gScore.set(id(child), tentativeGScore)
+
+      const childFScore = tentativeGScore + estimate(child, goal)
+      fScore.set(id(child), childFScore)
+    }
+
+    priorityQueue.sort((a, b) => fScore.get(id(a)) - fScore.get(id(b)))
+  }
+
+  const path = []
+  while (node) {
+    path.push(node)
+    node = parents.get(id(node))
+  }
+  return path.reverse()
+}
+
+function id(h){return hash = ( h.q << 16 ) ^ h.r; }
+
+isGoal=(h) => (0 === hex_distance(h, endc))
+
+var distance = hex_distance
+var estimate = hex_distance
+
+getSuccessors = function (h) {
+    let results =[]
+    for (var i = 0; i < 6; i++){
+        let hex = hex_neighbor(h, i)
+        if(patt[hex.r][hex.q]===1 ){
+            results.push(hex);
+        }
+    }
+    return results;
+}
+
+//function estimate (h, endc){return  h.a}
+
+
 function search (graph, start, end, options) {
 /* 
     graph.cleanDirty();
@@ -364,7 +438,7 @@ function search (graph, start, end, options) {
     var closest = options.closest || false;
 
     var openHeap = getHeap();
-    var closestNode = start; // set the start node to be the closest if required
+    var closestNode = start; 
 
     start.h = heuristic(start, end);
     graph.markDirty(start);
@@ -373,36 +447,28 @@ function search (graph, start, end, options) {
 
     while (openHeap.size() > 0) {
 
-      // Grab the lowest f(x) to process next.  Heap keeps this sorted for us.
       var currentNode = openHeap.pop();
 
-      // End case -- result has been found, return the traced path.
       if (currentNode === end) {
         return pathTo(currentNode);
       }
 
-      // Normal case -- move currentNode from open to closed, process each of its neighbors.
       currentNode.closed = true;
 
-      // Find all neighbors for the current node.
       var neighbors = graph.neighbors(currentNode);
 
       for (var i = 0, il = neighbors.length; i < il; ++i) {
         var neighbor = neighbors[i];
 
         if (neighbor.closed || neighbor.isWall()) {
-          // Not a valid node to process, skip to next neighbor.
           continue;
         }
 
-        // The g score is the shortest distance from start to current node.
-        // We need to check if the path we have arrived at this neighbor is the shortest one we have seen yet.
         var gScore = currentNode.g + neighbor.getCost(currentNode);
         var beenVisited = neighbor.visited;
 
         if (!beenVisited || gScore < neighbor.g) {
 
-          // Found an optimal (so far) path to this node.  Take score for node to see how good it is.
           neighbor.visited = true;
           neighbor.parent = currentNode;
           neighbor.h = neighbor.h || heuristic(neighbor, end);
@@ -410,18 +476,14 @@ function search (graph, start, end, options) {
           neighbor.f = neighbor.g + neighbor.h;
           graph.markDirty(neighbor);
           if (closest) {
-            // If the neighbour is closer than the current closestNode or if it's equally close but has
-            // a cheaper path than the current closest node then it becomes the closest node
             if (neighbor.h < closestNode.h || (neighbor.h === closestNode.h && neighbor.g < closestNode.g)) {
               closestNode = neighbor;
             }
           }
 
           if (!beenVisited) {
-            // Pushing to heap will put it in proper place based on the 'f' value.
             openHeap.push(neighbor);
           } else {
-            // Already seen the node, but since it has been rescored we need to reorder it in the heap
             openHeap.rescoreElement(neighbor);
           }
         }
@@ -445,4 +507,3 @@ function search (graph, start, end, options) {
       return d1 + d2;
     },
 */
-})();
