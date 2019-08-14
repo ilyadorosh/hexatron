@@ -24,19 +24,19 @@ var hexHeight,
 // MAP GENERATION
 function createObstacles() {
     for(i = 0; i < boardWidth; ++i) {
-        let newrow=new Array(boardHeight)
+        let newrow = new Array(boardHeight)
             for(j = 0; j < boardHeight; ++j) {
             if(  Math.floor(3*boardWidth/2)<=(i+j) || 
                    (i+j) <Math.floor(boardWidth/2) ){
                 newrow[j]=0
             } else {
-                newrow[j]=Math.floor(0.4+Math.random()*1.599)
+                newrow[j] = Math.floor(0.4+Math.random()*1.599)
             }
         }
-        board[i]=newrow;
+        board[i] = newrow;
     }
 
-    document.getElementById('result').value = board;
+    document.getElementById('result').value = JSON.stringify(board);
 }    
 createObstacles();
 
@@ -74,8 +74,6 @@ if (canvas.getContext){
         screenY = hexY * (hexHeight + sideLength);
         var touched = OffsetCoord(hexX, hexY);
         var touchedc = roffset_to_cube(-1,touched)
-        // Check if the mouse's coords are on the board
-        let onboard = hexX >= 0 && hexX < boardWidth && (hexY >= 0 && hexY < boardHeight) 
         if(board[touchedc.r][touchedc.q]===1 ){
             if(action === "begin"){
                 beginc = touchedc
@@ -181,7 +179,8 @@ function hex_neighbor(hex, direction)
     return hex_add(hex, hex_direction(direction));
 }
 
-
+// Check if the mouse's coords are on the board
+let onboard = (h) => (h.q >= 0 && h.q < boardWidth) && (h.r >= 0 && h.r < boardHeight) 
 
 function OffsetCoord(col, row) {
     return {col: col, row: row};
@@ -377,7 +376,7 @@ getSuccessors = (h) => {
     let results =[]
     for (var i = 0; i < 6; i++){
         let hex = hex_neighbor(h, i)
-        if(board[hex.r][hex.q]===1 ){
+        if(board[hex.r][hex.q]===1 && onboard(hex) ){
             results.push(hex);
         }
     }
