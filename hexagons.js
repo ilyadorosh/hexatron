@@ -1,7 +1,6 @@
-// neighbour
-// graph search
+// export path JSON
+// graph search edge cases, evaluate
 // usa map load
-// generate random hexagon array, save
 
 var canvas = document.getElementById('hexmap');
 var hexHeight,
