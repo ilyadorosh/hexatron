@@ -82,7 +82,7 @@ if (canvas.getContext){
         console.log(patt[touchedc.r][touchedc.q] + touchedc.q+' r= '+touchedc.r)
         if(action === "begin"){
             beginc = touchedc
-            drawHexagon(ctx, screenX, screenY, true);
+            drawHexagon(ctx, screenX, screenY, "#eeeeaa");
             action = "end"
             console.log("succ",getSuccessors(beginc)) 
         } else{
@@ -91,7 +91,7 @@ if (canvas.getContext){
             var way = astar (beginc, endc, {id, isGoal, getSuccessors ,distance, estimate})
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawBoard(ctx, boardWidth, boardHeight);
-            drawPath(ctx, way);
+            drawSet(way, "#eeeeaa");
             console.log("path/way",way)
         }
     //}
@@ -237,22 +237,22 @@ function drawBoard(canvasContext, width, height) {
             let p = offsetToPixel(roffset_from_cube(-1, Hex(j,i,-j-i) ));
             //if(mySet.has(OffsetClass(i,j)) ){
             if(patt[i][j]===1 ){
-                drawHexagon(ctx, p.x, p.y,false);
+                drawHexagon(ctx, p.x, p.y, "#aaccaa");
             }
             canvasContext.fillText('q='+j+ ' r='+i, p.x+20, p.y+40);
         }
     }
 }
 
-function drawPath(canvasContext, path) {
+function drawSet(path, fill) {
     path.forEach(function(pointc) {
         let point = offsetToPixel(roffset_from_cube(-1, pointc));
-        drawHexagon(ctx, point.x, point.y, true);
+        drawHexagon(ctx, point.x, point.y, fill);
     });
 }
 
 function drawHexagon(canvasContext, x, y, fill) { 
-    var fill = fill || false;
+    //var fill = fill || false;
     canvasContext.beginPath();
     canvasContext.moveTo(x + hexRadius, y);
     canvasContext.lineTo(x + hexRectangleWidth, y + hexHeight);
@@ -261,12 +261,8 @@ function drawHexagon(canvasContext, x, y, fill) {
     canvasContext.lineTo(x, y + sideLength + hexHeight);
     canvasContext.lineTo(x, y + hexHeight);
     canvasContext.closePath();
-    if(fill) {
-        ctx.fillStyle = "#eeeeaa";
-    } else {
-        ctx.fillStyle = "#aaccaa";
+    ctx.fillStyle = fill;
        // canvasContext.stroke();
-    }
     canvasContext.fill();
 
     ctx.fillStyle = "#cceecc";
@@ -275,6 +271,13 @@ function drawHexagon(canvasContext, x, y, fill) {
 
 
 document.getElementById('reset').onclick = function() {
+    action='begin';
+}
+
+document.getElementById('generate').onclick = function() {
+    createObstacles();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBoard(ctx, boardWidth, boardHeight);
     action='begin';
 }
 
