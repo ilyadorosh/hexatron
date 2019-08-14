@@ -16,17 +16,14 @@ var hexHeight,
     size, origin, rect,
 
     action = "begin", 
-    patt = new Array(boardHeight),
-    begin = OffsetCoord(7,5),
-    beginc = roffset_to_cube(-1,begin),
+    board = new Array(boardHeight),
+    begin, beginc,
     end, endc,
-    path=[],
-    board=[],
-    mySet = new Set();
+    path=[];
 
 // MAP GENERATION
 function createObstacles() {
-        for(i = 0; i < boardWidth; ++i) {
+    for(i = 0; i < boardWidth; ++i) {
         let newrow=new Array(boardHeight)
             for(j = 0; j < boardHeight; ++j) {
             if(  Math.floor(3*boardWidth/2)<=(i+j) || 
@@ -36,9 +33,10 @@ function createObstacles() {
                 newrow[j]=Math.floor(0.4+Math.random()*1.599)
             }
         }
-        patt[i]=newrow;
+        board[i]=newrow;
     }
-    //console.log( "patt", patt)
+
+    document.getElementById('result').value = board;
 }    
 createObstacles();
 
@@ -69,7 +67,7 @@ if (canvas.getContext){
 
         x = eventInfo.clientX - rect.left;
         y = eventInfo.clientY - rect.top;
-        // PIXEL TO HEX 
+        // PIXEL TO Offset 
         hexY = Math.floor(y / (hexHeight + sideLength));
         hexX = Math.floor((x - (hexY % 2) * hexRadius) / hexRectangleWidth);
         screenX = hexX * hexRectangleWidth + ((hexY % 2) * hexRadius);
@@ -78,23 +76,22 @@ if (canvas.getContext){
         var touchedc = roffset_to_cube(-1,touched)
         // Check if the mouse's coords are on the board
         let onboard = hexX >= 0 && hexX < boardWidth && (hexY >= 0 && hexY < boardHeight) 
-    //if(patt[touchedc.r][touchedc.q]===1 ){
-        console.log(patt[touchedc.r][touchedc.q] + touchedc.q+' r= '+touchedc.r)
-        if(action === "begin"){
-            beginc = touchedc
-            drawHexagon(ctx, screenX, screenY, "#eeeeaa");
-            action = "end"
-            console.log("succ",getSuccessors(beginc)) 
-        } else{
-            endc = touchedc
-            path = hex_linedraw(beginc, endc);
-            var way = astar (beginc, endc, {id, isGoal, getSuccessors ,distance, estimate})
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawBoard(ctx, boardWidth, boardHeight);
-            drawSet(way, "#eeeeaa");
-            console.log("path/way",way)
+        if(board[touchedc.r][touchedc.q]===1 ){
+            if(action === "begin"){
+                beginc = touchedc
+                drawHexagon(ctx, screenX, screenY, "#eeeeaa");
+                action = "end"
+                console.log("succ",getSuccessors(beginc)) 
+            } else{
+                endc = touchedc
+                path = hex_linedraw(beginc, endc);
+                var way = astar (beginc, endc, {id, isGoal, getSuccessors ,distance, estimate})
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBoard(ctx, boardWidth, boardHeight);
+                drawSet(way, "#eeeeaa");
+                console.log("path/way",way)
+            }
         }
-    //}
 
     });
 
@@ -236,7 +233,7 @@ function drawBoard(canvasContext, width, height) {
             //let p = hexToPixel(Hex(j,i,-j-i));
             let p = offsetToPixel(roffset_from_cube(-1, Hex(j,i,-j-i) ));
             //if(mySet.has(OffsetClass(i,j)) ){
-            if(patt[i][j]===1 ){
+            if(board[i][j]===1 ){
                 drawHexagon(ctx, p.x, p.y, "#aaccaa");
             }
             canvasContext.fillText('q='+j+ ' r='+i, p.x+20, p.y+40);
@@ -294,7 +291,7 @@ document.getElementById('import').onclick = function() {
       console.log(e);
       var result = JSON.parse(e.target.result);
       console.log(result);
-      patt = result
+      board = result
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           drawBoard(ctx, boardWidth, boardHeight);
       var formatted = JSON.stringify(result, null, 2);
@@ -312,7 +309,7 @@ function download(content, fileName, contentType) {
     a.click();
 }
 document.getElementById('download').onclick = function() {
-    let jsonData = JSON.stringify(patt)
+    let jsonData = JSON.stringify(board)
     download(jsonData, 'json.txt', 'text/plain');
 }
 
@@ -380,7 +377,7 @@ getSuccessors = (h) => {
     let results =[]
     for (var i = 0; i < 6; i++){
         let hex = hex_neighbor(h, i)
-        if(patt[hex.r][hex.q]===1 ){
+        if(board[hex.r][hex.q]===1 ){
             results.push(hex);
         }
     }
