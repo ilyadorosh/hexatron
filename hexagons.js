@@ -79,6 +79,7 @@ if (canvas.getContext){
         // Check if the mouse's coords are on the board
         let onboard = hexX >= 0 && hexX < boardWidth && (hexY >= 0 && hexY < boardHeight) 
     //if(patt[touchedc.r][touchedc.q]===1 ){
+        console.log(patt[touchedc.r][touchedc.q] + touchedc.q+' r= '+touchedc.r)
         if(action === "begin"){
             beginc = touchedc
             drawHexagon(ctx, screenX, screenY, true);
@@ -207,7 +208,7 @@ function offsetToPixel(oc) {
     let j=oc.row;
     let x = i * hexRectangleWidth + ((j % 2) * hexRadius);
     let y = j * (sideLength + hexHeight);
-        return Point(x, y);
+    return Point(x, y);
 }
 
 var EVEN = 1;
@@ -227,31 +228,26 @@ function roffset_to_cube(offset, h) {
     return Hex(q, r, s);
 }
 
-    function drawBoard(canvasContext, width, height) {
-        var i,
-            j;
-        for(i = 0; i < width; ++i) {
-            for(j = 0; j < height; ++j) {
+function drawBoard(canvasContext, width, height) {
+    var i,
+        j;
+    for(i = 0; i < width; ++i) {
+        for(j = 0; j < height; ++j) {
             //let p = hexToPixel(Hex(j,i,-j-i));
             let p = offsetToPixel(roffset_from_cube(-1, Hex(j,i,-j-i) ));
             //if(mySet.has(OffsetClass(i,j)) ){
             if(patt[i][j]===1 ){
-                drawHexagon(ctx, p.x, p.y,false);
+                drawHexagon(ctx, p.x, p.y,false);
             }
             canvasContext.fillText('q='+j+ ' r='+i, p.x+20, p.y+40);
-            }
         }
     }
+}
 
-    function drawPath(canvasContext, path) {
-        path.forEach(function(pointc) {
-        point = roffset_from_cube(-1, pointc);
-                drawHexagon(
-                    ctx, 
-                    point.col * hexRectangleWidth + ((point.row % 2) * hexRadius), 
-                    point.row * (sideLength + hexHeight), 
-                    true
-                );
+function drawPath(canvasContext, path) {
+    path.forEach(function(pointc) {
+        let point = offsetToPixel(roffset_from_cube(-1, pointc));
+        drawHexagon(ctx, point.x, point.y, true);
     });
 }
 
@@ -329,7 +325,7 @@ function astar (start, goal, {id, isGoal, getSuccessors, distance, estimate}) {
   fScore.set(id(start), estimate(start, goal))
 
   while (priorityQueue[0] || priorityQueue.length) {
-    console.log("openque",priorityQueue)
+    //console.log("openque",priorityQueue)
     node = priorityQueue.shift()
 
     if (closed.has(id(node))) {
