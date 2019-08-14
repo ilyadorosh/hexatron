@@ -22,9 +22,9 @@ var hexHeight,
 
 // MAP GENERATION
 function createObstacles() {
-    for(i = 0; i < boardWidth; ++i) {
+    for(let i = 0; i < boardWidth; ++i) {
         let newrow = new Array(boardHeight)
-            for(j = 0; j < boardHeight; ++j) {
+            for(let j = 0; j < boardHeight; ++j) {
             if(  Math.floor(3*boardWidth/2)<=(i+j) || 
                    (i+j) <Math.floor(boardWidth/2) ){
                 newrow[j]=0
@@ -56,7 +56,7 @@ if (canvas.getContext){
     ctx.lineWidth = 4;
     drawBoard(ctx, boardWidth, boardHeight);
 
-    canvas.addEventListener("mousemove", function(eventInfo) {
+    canvas.addEventListener("click", function(eventInfo) {
         var x,
             y,
             hexX,
@@ -73,23 +73,24 @@ if (canvas.getContext){
         screenY = hexY * (hexHeight + sideLength);
         var touched = OffsetCoord(hexX, hexY);
         var touchedc = roffset_to_cube(-1,touched)
-        if(board[touchedc.r][touchedc.q]===1 ){
-            if(action === "begin"){
-                beginc = touchedc
-                drawHexagon(ctx, screenX, screenY, "#eeeeaa");
-                action = "end"
-                console.log("succ",getSuccessors(beginc)) 
-            } else{
-                endc = touchedc
-                path = hex_linedraw(beginc, endc);
-                var way = astar (beginc, endc, {id, isGoal, getSuccessors ,distance, estimate})
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawBoard(ctx, boardWidth, boardHeight);
-                drawSet(way, "#eeeeaa");
-                console.log("path/way",way)
-            }
+        if(onboard(touchedc) ){
+          if(board[touchedc.r][touchedc.q]===1 ){
+              if(action === "begin"){
+                  beginc = touchedc
+                  drawHexagon(ctx, screenX, screenY, "#eeeeaa");
+                  action = "end"
+                  console.log("succ",getSuccessors(beginc)) 
+              } else{
+                  endc = touchedc
+                  path = hex_linedraw(beginc, endc);
+                  var way = astar (beginc, endc, {id, isGoal, getSuccessors ,distance, estimate})
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  drawBoard(ctx, boardWidth, boardHeight);
+                  drawSet(way, "#eeeeaa");
+                  // console.log("path/way",way)
+              }
+          }
         }
-
     });
 
 }
@@ -367,16 +368,18 @@ function astar (start, goal, {id, isGoal, getSuccessors, distance, estimate}) {
   return path.reverse()
 }
 
-id = (h) => hash = ( h.q << 16 ) ^ h.r
+let id = (h) => ( h.q << 16 ) ^ h.r
 
-isGoal = (h) => (0 === hex_distance(h, endc))
+let isGoal = (h) => (0 === hex_distance(h, endc))
 
-getSuccessors = (h) => {
+let getSuccessors = (h) => {
     let results =[]
     for (var i = 0; i < 6; i++){
         let hex = hex_neighbor(h, i)
-        if(board[hex.r][hex.q]===1 && onboard(hex) ){
-            results.push(hex);
+        if(onboard(hex) ){
+          if(board[hex.r][hex.q]===1 && onboard(hex) ){
+              results.push(hex);
+          }
         }
     }
     return results;
@@ -388,7 +391,7 @@ var estimate = hex_distance
 
 class OffsetClass {
     constructor(row, col) {
-        this.row = rows;
+        this.row = row;
         this.col = col;
     }
     equals (obj) { 
